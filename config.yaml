@@ -1,4 +1,8 @@
-hostport: localhost:12345
 credentials: c:\Users\carbon\vox\credentials.json
+
+cache:
+  webHostport: localhost:1234
+  grpcHostport: localhost:2345
+
 sqllite:
   fpath: foo.sqlite
