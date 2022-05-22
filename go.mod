@@ -7,7 +7,9 @@ require (
 	github.com/labstack/echo/v4 v4.7.2
 	google.golang.org/api v0.80.0
 	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd
+	google.golang.org/protobuf v1.28.0
 	gopkg.in/ini.v1 v1.66.4
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 require (
@@ -31,5 +33,4 @@ require (
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.46.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
 )

@@ -1,0 +1,4 @@
+hostport: localhost:12345
+credentials: c:\Users\carbon\vox\credentials.json
+sqllite:
+  fpath: foo.sqlite

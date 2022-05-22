@@ -1,89 +1,76 @@
-// Command quickstart generates an audio file with the content "Hello, World!".
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
-	"google.golang.org/api/option"
-	"gopkg.in/ini.v1"
-	"io/ioutil"
-	"log"
-	"net/http"
-
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
-	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
-
+	"context"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-
+	"github.com/moribellamy/voxmachina/utils"
+	"google.golang.org/api/option"
+	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
 	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
+	"net/http"
 )
 
 var grpcClient *texttospeech.Client
 
-func myLog(request *texttospeechpb.SynthesizeSpeechRequest) {
-	asJson, err := protojson.Marshal(request)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var indented bytes.Buffer
-	if err = json.Indent(&indented, asJson, "", "  "); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf(indented.String())
-}
-
 func v1Synthesize(c echo.Context) error {
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		return echo.ErrInternalServerError
+		return err
 	}
 	var req texttospeechpb.SynthesizeSpeechRequest
 	if err := protojson.Unmarshal(body, &req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"message": "Could not convert argument to SynthesizeSpeechRequest",
-			"error":   fmt.Sprint(err),
+			"message": "Could not convert argument to SynthesizeSpeechRequest: " + fmt.Sprint(err),
 		})
 	}
 
-	myLog(&req)
-
-	ctx := context.Background()
-	resp, err := grpcClient.SynthesizeSpeech(ctx, &req)
+	resp, err := cachedGet(&req)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": "Upstream Google TTS Server responded with an error.",
-			"error":   fmt.Sprint(err),
+			"message": fmt.Sprint(err),
 		})
 	}
 	respJson, err := protojson.Marshal(resp)
 	if err != nil {
-		return echo.ErrInternalServerError
+		return err
 	}
 	return c.JSONBlob(http.StatusOK, respJson)
 }
 
+func cachedGet(request *texttospeechpb.SynthesizeSpeechRequest) (*texttospeechpb.SynthesizeSpeechResponse, error) {
+	ctx := context.Background()
+	// TODO cache lookup
+	return grpcClient.SynthesizeSpeech(ctx, request)
+}
+
 func main() {
-	config, err := ini.Load("config.ini")
+	var config utils.Config
+	configBytes, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
-		log.Fatal(err)
+		utils.ErrorLogger.Fatal(err)
+	}
+	if err := yaml.Unmarshal(configBytes, &config); err != nil {
+		utils.ErrorLogger.Fatal(err)
 	}
 
 	ctx := context.Background()
 	grpcClient, err = texttospeech.NewClient(
 		ctx,
-		option.WithCredentialsFile(config.Section("tts").Key("credentialsFile").String()),
+		option.WithCredentialsFile(config.Credentials),
 	)
 	defer grpcClient.Close()
 	if err != nil {
-		log.Fatal(err)
+		utils.ErrorLogger.Fatal(err)
 	}
 
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.POST("v1/text:synthesize", v1Synthesize)
-	e.Logger.Fatal(e.Start(config.Section("voxmachina").Key("hostport").String()))
+	e.Logger.Fatal(e.Start(config.Hostport))
 }
