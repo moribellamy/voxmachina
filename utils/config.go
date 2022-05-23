@@ -1,16 +1,16 @@
 package utils
 
 type sqlLite struct {
-	Fpath string
+	Fpath string `yaml:"fpath"`
 }
 
 type cache struct {
-	WebHostport  string
-	GrpcHostport string
+	WebHostport  string `yaml:"webHostport"`
+	GrpcHostport string `yaml:"grpcHostport"`
 }
 
 type Config struct {
-	Cache       cache
-	Credentials string
-	Sqllite     sqlLite
+	Cache       cache   `yaml:"cache"`
+	Credentials string  `yaml:"credentials"`
+	Sqllite     sqlLite `yaml:"sqllite"`
 }
