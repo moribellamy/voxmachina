@@ -8,6 +8,7 @@ import (
 
 type Storage interface {
 	Store(*texttospeechpb.SynthesizeSpeechRequest, *texttospeechpb.SynthesizeSpeechResponse) error
+	Get(*texttospeechpb.SynthesizeSpeechRequest) (*texttospeechpb.SynthesizeSpeechResponse, error)
 }
 
 func FromConfig(config utils.Storage) (Storage, error) {

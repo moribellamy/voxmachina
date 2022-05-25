@@ -28,7 +28,7 @@ func main() {
 	}
 	utils.InfoLogger.Println(store)
 
-	vox, err := server.NewVox(config.Server)
+	vox, err := server.NewVox(config.Server, store)
 	if err != nil {
 		utils.ErrorLogger.Fatal(err)
 	}

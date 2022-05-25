@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/moribellamy/voxmachina/storage"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,12 +22,14 @@ type Vox struct {
 	web        *localWebserverWrapper
 	grpcClient *texttospeech.Client
 	ctx        context.Context
+	store      storage.Storage
 }
 
-func NewVox(config utils.Server) (*Vox, error) {
+func NewVox(config utils.Server, store storage.Storage) (*Vox, error) {
 	var err error
 	vox := &Vox{}
 	vox.ctx = context.Background()
+	vox.store = store
 	vox.config = config
 
 	vox.grpcClient, err = texttospeech.NewClient(
@@ -44,7 +47,18 @@ func NewVox(config utils.Server) (*Vox, error) {
 
 func (vox *Vox) upstreamGet(request *texttospeechpb.SynthesizeSpeechRequest) (
 	*texttospeechpb.SynthesizeSpeechResponse, error) {
-	return vox.grpcClient.SynthesizeSpeech(vox.ctx, request)
+	resp, err := vox.store.Get(request)
+	// Cache hit
+	if err == nil {
+		return resp, nil
+	}
+	// Cache miss
+	resp, err = vox.grpcClient.SynthesizeSpeech(vox.ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	err = vox.store.Store(request, resp)
+	return resp, err
 }
 
 func (vox *Vox) Run() error {
