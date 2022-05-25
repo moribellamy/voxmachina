@@ -6,21 +6,21 @@ import (
 	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
 )
 
-type SqlLite struct {
+type Sqlite struct {
 	db *sql.DB
 }
 
-func NewSqlLite(fpath string) (*SqlLite, error) {
+func NewSqlite(fpath string) (*Sqlite, error) {
 	var err error
-	sqllite := SqlLite{}
-	sqllite.db, err = sql.Open("sqlite3", fpath)
+	sqlite := Sqlite{}
+	sqlite.db, err = sql.Open("sqlite3", fpath)
 	if err != nil {
 		return nil, err
 	}
-	return &sqllite, nil
+	return &sqlite, nil
 }
 
-func (sqllite *SqlLite) Store(
+func (sqlite *Sqlite) Store(
 	request *texttospeechpb.SynthesizeSpeechRequest,
 	response *texttospeechpb.SynthesizeSpeechResponse) error {
 	return nil

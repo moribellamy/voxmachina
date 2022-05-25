@@ -11,8 +11,8 @@ type Storage interface {
 }
 
 func FromConfig(config utils.Storage) (Storage, error) {
-	if config.Sqllite.Fpath != "" {
-		sqllite, err := NewSqlLite(config.Sqllite.Fpath)
+	if config.Sqlite.Fpath != "" {
+		sqllite, err := NewSqlite(config.Sqlite.Fpath)
 		return sqllite, err
 	}
 	return nil, errors.New("cannot find storage type")

@@ -13,9 +13,9 @@ type Server struct {
 
 // Exactly one of the storage fields may be supplied.
 type Storage struct {
-	Sqllite sqlLite `yaml:"sqllite"`
+	Sqlite sqlite `yaml:"sqlite"`
 }
 
-type sqlLite struct {
+type sqlite struct {
 	Fpath string `yaml:"fpath"`
 }

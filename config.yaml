@@ -4,5 +4,5 @@ server:
   credentials: /home/mori/vox/credentials.json
 
 storage:
-  sqllite:
-    fpath: "foo.sqllite"
+  sqlite:
+    fpath: "foo.db"
