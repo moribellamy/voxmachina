@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,7 +17,7 @@ type localWebserverWrapper struct {
 	server *echo.Echo
 }
 
-func NewLocalWebserver(getter SynthesizeFunc) *localWebserverWrapper {
+func newLocalWebserver(getter SynthesizeFunc) *localWebserverWrapper {
 	wrapper := localWebserverWrapper{}
 	wrapper.getter = getter
 	server := echo.New()
@@ -59,4 +60,8 @@ func (wrapper *localWebserverWrapper) v1Synthesize(c echo.Context) error {
 
 func (wrapper *localWebserverWrapper) Start(addr string) error {
 	return wrapper.server.Start(addr)
+}
+
+func (wrapper *localWebserverWrapper) GracefulStop() error {
+	return wrapper.server.Shutdown(context.Background())
 }

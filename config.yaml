@@ -1,4 +1,4 @@
-credentials: c:\Users\carbon\vox\credentials.json
+credentials: /home/mori/vox/credentials.json
 
 cache:
   webHostport: localhost:1234

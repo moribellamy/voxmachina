@@ -5,10 +5,9 @@ import (
 	"errors"
 	"net"
 
-	"google.golang.org/grpc/reflection"
-
 	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type SynthesizeFunc func(*texttospeechpb.SynthesizeSpeechRequest) (
@@ -19,7 +18,7 @@ type localGrpcServerWrapper struct {
 	server *grpc.Server
 }
 
-func NewCachingTextToSpeechServer(getter SynthesizeFunc) *localGrpcServerWrapper {
+func newLocalGrpcServer(getter SynthesizeFunc) *localGrpcServerWrapper {
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
 	return &localGrpcServerWrapper{
