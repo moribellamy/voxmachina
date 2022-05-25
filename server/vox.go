@@ -84,5 +84,8 @@ func (vox *Vox) Run() error {
 
 func (vox *Vox) GracefulShutdown() error {
 	vox.grpc.GracefulStop()
-	return vox.web.GracefulStop()
+	return multierr.Combine(
+		vox.web.GracefulStop(),
+		vox.store.Close(),
+	)
 }

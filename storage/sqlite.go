@@ -21,11 +21,14 @@ func NewSqlite(fpath string) (*Sqlite, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, dropErr := sqlite.db.Exec("drop table if exists cache;")
-	_, createErr := sqlite.db.Exec("create table cache (" +
+	_, err = sqlite.db.Exec("create table if not exists cache (" +
 		"req blob not null primary key, " +
 		"resp blob not null);")
-	return &sqlite, multierr.Combine(dropErr, createErr)
+	return &sqlite, err
+}
+
+func (sqlite *Sqlite) Close() error {
+	return sqlite.db.Close()
 }
 
 func (sqlite *Sqlite) Store(
@@ -41,7 +44,7 @@ func (sqlite *Sqlite) Store(
 	return err
 }
 
-var cacheMiss error = errors.New("cache miss")
+var cacheMiss = errors.New("cache miss")
 
 func (sqlite *Sqlite) Get(request *texttospeechpb.SynthesizeSpeechRequest) (
 	*texttospeechpb.SynthesizeSpeechResponse, error) {
@@ -54,13 +57,12 @@ func (sqlite *Sqlite) Get(request *texttospeechpb.SynthesizeSpeechRequest) (
 		return nil, readErr
 	}
 	defer rows.Close()
-	rows.Next()
+	if !rows.Next() {
+		return nil, cacheMiss
+	}
 	var respText []byte
 	if err = rows.Scan(&respText); err != nil {
 		return nil, err
-	}
-	if respText == nil {
-		return nil, cacheMiss
 	}
 	resp := texttospeechpb.SynthesizeSpeechResponse{}
 	err = proto.Unmarshal(respText, &resp)
