@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/moribellamy/voxmachina/server"
+	"github.com/moribellamy/voxmachina/storage"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
@@ -19,7 +20,15 @@ func main() {
 	if err := yaml.Unmarshal(configBytes, &config); err != nil {
 		utils.ErrorLogger.Fatal(err)
 	}
-	vox, err := server.NewVox(config)
+
+	var store storage.Storage
+	store, err = storage.FromConfig(config.Storage)
+	if err != nil {
+		utils.ErrorLogger.Fatal(err)
+	}
+	utils.InfoLogger.Println(store)
+
+	vox, err := server.NewVox(config.Server)
 	if err != nil {
 		utils.ErrorLogger.Fatal(err)
 	}

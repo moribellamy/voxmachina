@@ -16,14 +16,14 @@ import (
 )
 
 type Vox struct {
-	config     utils.Config
+	config     utils.Server
 	grpc       *localGrpcServerWrapper
 	web        *localWebserverWrapper
 	grpcClient *texttospeech.Client
 	ctx        context.Context
 }
 
-func NewVox(config utils.Config) (*Vox, error) {
+func NewVox(config utils.Server) (*Vox, error) {
 	var err error
 	vox := &Vox{}
 	vox.ctx = context.Background()
@@ -52,10 +52,10 @@ func (vox *Vox) Run() error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	servers := make(chan error, 2)
 	go func() {
-		servers <- vox.web.Start(vox.config.Cache.WebHostport)
+		servers <- vox.web.Start(vox.config.WebHostport)
 	}()
 	go func() {
-		servers <- vox.grpc.Start(vox.config.Cache.GrpcHostport)
+		servers <- vox.grpc.Start(vox.config.GrpcHostport)
 	}()
 
 	var servingErr error

@@ -1,8 +1,8 @@
-credentials: /home/mori/vox/credentials.json
-
-cache:
+server:
   webHostport: localhost:1234
   grpcHostport: localhost:2345
+  credentials: /home/mori/vox/credentials.json
 
-sqllite:
-  fpath: foo.sqlite
+storage:
+  sqllite:
+    fpath: "foo.sqllite"
