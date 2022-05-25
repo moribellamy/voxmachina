@@ -11,7 +11,7 @@ type Server struct {
 	Credentials  string `yaml:"credentials"`
 }
 
-// Exactly one of the storage fields may be supplied.
+// Exactly one of the Storage fields may be supplied.
 type Storage struct {
 	Sqlite sqlite `yaml:"sqlite"`
 }

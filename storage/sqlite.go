@@ -3,11 +3,11 @@ package storage
 import (
 	"database/sql"
 	"errors"
+
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/multierr"
-	"google.golang.org/protobuf/proto"
-
 	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 type Sqlite struct {
