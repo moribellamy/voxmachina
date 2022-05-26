@@ -4,5 +4,9 @@ server:
   credentials: /home/mori/vox/credentials.json
 
 storage:
-  sqlite:
-    fpath: "foo.db"
+#  sqlite:
+#    fpath: "foo.db"
+  lionrock:
+    hostport: localhost:6565
+    prefix: "voxmachina"
+    name: "fdb"

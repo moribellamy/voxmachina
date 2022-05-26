@@ -1,0 +1,517 @@
+// Copied from v 1.17, with minor edits to compile
+// To build, e.g. protoc -I=src --go_out=goproto --go-grpc_out=goproto lionrock.proto
+// For more: https://grpc.io/docs/languages/go/quickstart/
+
+syntax = "proto3";
+
+option go_package="out/lionrock";
+option java_package = "io.github.panghy.lionrock.proto";
+option java_multiple_files = true;
+
+// A transactional, key-value store as a gRPC service.
+service TransactionalKeyValueStore {
+  // Execute a transaction
+  rpc executeTransaction (stream StreamingDatabaseRequest) returns (stream StreamingDatabaseResponse);
+  // Execute a single database operation (with a transaction)
+  rpc execute(DatabaseRequest) returns (DatabaseResponse);
+}
+
+// The request message from a client to a database to execute a single operation.
+message DatabaseRequest {
+  string name = 1;
+  string client_identifier = 2;
+  string database_name = 3;
+  // set the read version to use. infrequently used.
+  int64 read_version = 4;
+  // transaction options to set. implementation specific.
+  repeated SetTransactionOptionRequest transaction_options = 5;
+
+  oneof request {
+    GetValueRequest get_value = 6;
+    GetRangeRequest get_range = 7;
+    SetValueRequest set_value = 8;
+    ClearKeyRequest clear_key = 9;
+    ClearKeyRangeRequest clear_range = 10;
+    MutateValueRequest mutate_value = 11;
+    GetKeyRequest get_key = 12;
+    GetEstimatedRangeSizeRequest get_estimated_range_size = 13;
+    GetBoundaryKeysRequest get_boundary_keys = 14;
+    GetAddressesForKeyRequest get_addresses_for_key = 15;
+  }
+}
+
+// The response message from the database.
+message DatabaseResponse {
+  // The response from the original request.
+  oneof response {
+    GetValueResponse get_value = 1;
+    GetRangeResponse get_range = 2;
+    GetKeyResponse get_key = 3;
+    CommitTransactionResponse committed_transaction = 4;
+    GetEstimatedRangeSizeResponse get_estimated_range_size = 5;
+    GetBoundaryKeysResponse get_boundary_keys = 6;
+    GetAddressesForKeyResponse get_addressses_for_key = 7;
+  }
+}
+
+// The request message from a client to a database when streaming.
+message StreamingDatabaseRequest {
+  oneof request {
+    StartTransactionRequest start_transaction = 1;
+    CommitTransactionRequest commit_transaction = 2;
+    GetValueRequest get_value = 3;
+    SetValueRequest set_value = 4;
+    ClearKeyRequest clear_key = 5;
+    ClearKeyRangeRequest clear_range = 6;
+    GetRangeRequest get_range = 7;
+    AddConflictKeyRequest add_conflict_key = 8;
+    AddConflictRangeRequest add_conflict_range = 9;
+    GetReadVersionRequest get_read_version = 10;
+    SetReadVersionRequest set_read_version = 11;
+    SetTransactionOptionRequest set_transaction_option = 12;
+    MutateValueRequest mutate_value = 13;
+    WatchKeyRequest watch_key = 15;
+    GetApproximateSizeRequest get_approximate_size = 16;
+    GetKeyRequest get_key = 17;
+    GetEstimatedRangeSizeRequest get_estimated_range_size = 18;
+    GetBoundaryKeysRequest get_boundary_keys = 19;
+    GetAddressesForKeyRequest get_addresses_for_key = 20;
+    BatchedMutationsRequest batched_mutations = 21;
+  }
+}
+
+// A batched collected of mutations.
+message BatchedMutations {
+  oneof mutation {
+    SetValueRequest set_value = 1;
+    ClearKeyRequest clear_key = 2;
+    ClearKeyRangeRequest clear_range = 3;
+    AddConflictKeyRequest add_conflict_key = 4;
+    AddConflictRangeRequest add_conflict_range = 5;
+    MutateValueRequest mutate_value = 6;
+  }
+}
+
+// The response message from a client to a database when streaming.
+message StreamingDatabaseResponse {
+  oneof response {
+    CommitTransactionResponse commit_transaction = 1;
+    OperationFailureResponse operation_failure = 2;
+    GetValueResponse get_value = 3;
+    GetRangeResponse get_range = 4;
+    GetReadVersionResponse get_read_version = 5;
+    WatchKeyResponse watch_key = 7;
+    GetApproximateSizeResponse get_approximate_size = 8;
+    GetKeyResponse get_key = 9;
+    GetEstimatedRangeSizeResponse get_estimated_range_size = 10;
+    GetBoundaryKeysResponse get_boundary_keys = 11;
+    GetAddressesForKeyResponse get_addresses_for_key = 12;
+  }
+}
+
+// The request message to start a transaction.
+message StartTransactionRequest {
+  string name = 1;
+  string client_identifier = 2;
+  string database_name = 3;
+}
+
+// The request to commit the ongoing transaction.
+message CommitTransactionRequest {
+}
+
+// The last response of a transaction request. Indicates successfully committing the transaction.
+message CommitTransactionResponse {
+  int64 committed_version = 1;
+  // The versionstamp after a commit. not available for read-only transactions.
+  bytes versionstamp = 2;
+}
+
+// The request to get the value of a single key.
+message GetValueRequest {
+  int64 sequence_id = 1;
+  bytes key = 2;
+  // whether to do a snapshot get (instead of marking read rows with read conflict ranges).
+  // only apply to streaming transactions.
+  bool snapshot = 3;
+}
+
+// The response for the value to a key.
+message GetValueResponse {
+  int64 sequence_id = 1;
+  bytes value = 2;
+}
+
+// The request to get a key by a key selector.
+message GetKeyRequest {
+  int64 sequence_id = 1;
+  KeySelector keySelector = 2;
+  // whether to do a snapshot get (instead of marking read rows with read conflict ranges).
+  // only apply to streaming transactions.
+  bool snapshot = 3;
+}
+
+// The response for the value to a key.
+message GetKeyResponse {
+  int64 sequence_id = 1;
+  bytes key = 2;
+}
+
+// The request to get the value of a single key.
+message SetValueRequest {
+  bytes key = 1;
+  bytes value = 2;
+}
+
+// The request to get the value of a single key.
+message MutateValueRequest {
+  bytes key = 1;
+  MutationType type = 2;
+  bytes param = 3;
+}
+
+// The request to delete a key.
+message ClearKeyRequest {
+  bytes key = 1;
+}
+
+// The request to delete a range of keys.
+message ClearKeyRangeRequest {
+  // start key inclusive
+  bytes start = 1;
+  // end key exclusive
+  bytes end = 2;
+}
+
+// Gets an ordered range of keys and values from the database.  The begin
+// and end keys are specified by {@code byte[]} arrays, with the begin
+// key inclusive and the end key exclusive.
+message GetRangeRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // the beginning of the range (inclusive).
+  oneof start {
+    KeySelector startKeySelector = 2;
+    bytes startBytes = 3;
+  }
+  // the end of the range (exclusive).
+  oneof end {
+    KeySelector endKeySelector = 4;
+    bytes endBytes = 5;
+  }
+  // The maximum number of results to return. Limits results to the
+  // <i>first</i> keys in the range. If {@code reverse} is {@code true} rows
+  // will be limited starting at the end of the range.
+  int32 limit = 6;
+  // return results starting at the end of the range in reverse order.
+  bool reverse = 7;
+  // provide a hint about how the results are to be used. This
+  // can provide speed improvements or efficiency gains based on the caller's
+  // knowledge of the upcoming access pattern.
+  StreamingMode streamingMode = 8;
+  // whether to do a snapshot get (instead of marking read rows with read conflict ranges).
+  // only apply to streaming transactions.
+  bool snapshot = 9;
+}
+
+// The response (or a single batch of many) when getting a range of keys.
+message GetRangeResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  repeated KeyValue keyValues = 2;
+  bool done = 3;
+}
+
+// A request to add a conflict key for determining what keys are involved in a transaction.
+message AddConflictKeyRequest {
+  // the key to add as a conflict key.
+  bytes key = 1;
+  // if false (default), add a key to the transaction's read conflict ranges as if you had read
+  // the key. As a result, other transactions that concurrently write this key
+  // could cause the transaction to fail with a conflict.
+  // if true, add a key to the transaction's write conflict ranges as if you had
+  // written the key. As a result, other transactions that concurrently read
+  // this key could fail with a conflict.
+  bool write = 2;
+}
+
+// A request to add a conflict range for determining what keys are involved in a transaction.
+// Manages conflict ranges for determining what keys are involved in a transaction.
+message AddConflictRangeRequest {
+  // the start key (inclusive) to add as a conflict key.
+  bytes start = 1;
+  // the end (exclusive) to add as a conflict key.
+  bytes end = 2;
+  // if false (default), add a range of keys to the transaction's read conflict ranges as if you
+  // had read the range. As a result, other transactions that write a key in
+  // this range could cause the transaction to fail with a conflict.
+  // if true, add a key to the transaction's read conflict ranges as if you had read
+  // the key. As a result, other transactions that concurrently write this key
+  // could cause the transaction to fail with a conflict.
+  bool write = 3;
+}
+
+// A request to get the current read version.
+message GetReadVersionRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+}
+
+// A response to getting the read version.
+message GetReadVersionResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  int64 read_version = 2;
+}
+
+// A request to set the read version to use for the transaction.
+message SetReadVersionRequest {
+  int64 read_version = 1;
+}
+
+// A request to set transaction options. Implementation specific.
+message SetTransactionOptionRequest {
+  int32 option = 1;
+  bytes param = 2;
+}
+
+// The request to watch a key for changes.
+message WatchKeyRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  bytes key = 2;
+}
+
+// The response when a key changes after a transaction is committed.
+message WatchKeyResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+}
+
+// The request to get the approximate size of the transaction.
+message GetApproximateSizeRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+}
+
+// The response to get the approximate size of the transaction.
+message GetApproximateSizeResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // the approximate size of the transaction.
+  int64 size = 2;
+}
+
+// The request to get the approximate size of a range of keys.
+message GetEstimatedRangeSizeRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // the start key (inclusive) to add as a conflict key.
+  bytes start = 2;
+  // the end (exclusive) to add as a conflict key.
+  bytes end = 3;
+}
+
+// The response to get the approximate size of a range of keys
+message GetEstimatedRangeSizeResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // the approximate size of the range.
+  int64 size = 2;
+}
+
+// The request to get boundary keys
+message GetBoundaryKeysRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // the beginning of the range (inclusive).
+  bytes start = 2;
+  // the end of the range (exclusive).
+  bytes end = 3;
+}
+
+// The response to get boundary keys. A single batch of many.
+message GetBoundaryKeysResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  repeated bytes keys = 2;
+  bool done = 3;
+}
+
+// The request to get public network addresses as strings for a key.
+message GetAddressesForKeyRequest {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // key
+  bytes key = 2;
+}
+
+// The response to get boundary keys
+message GetAddressesForKeyResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  repeated string addresses = 2;
+}
+
+// The request for batched mutations
+message BatchedMutationsRequest {
+  // mutations batched.
+  repeated BatchedMutations mutations = 1;
+}
+
+// The response that's streamed back when a single async operation fails.
+message OperationFailureResponse {
+  // In streaming use-cases, the sequence_id is used by the client to identify a
+  // request and for the server to stream results back to that original request.
+  int64 sequence_id = 1;
+  // error code (if available)
+  int64 code = 2;
+  // error message (if available)
+  string message = 3;
+}
+
+// Key-Value Pair
+message KeyValue {
+  bytes key = 1;
+  bytes value = 2;
+}
+
+// Identifies a particular key in the database
+message KeySelector {
+  // the base key to reference
+  bytes key = 1;
+  // {@code true} if the key selector should resolve to
+  // {@code key} (if {@code key} is present) before accounting for the offset
+  bool orEqual = 2;
+  // the offset (in number of keys) that the selector will advance after
+  // resolving to a key based on the {@code key} and {@code orEqual} parameters
+  int32 offset = 3;
+}
+
+// Options that controls how range reads are done.
+enum StreamingMode {
+  // The default. The client doesn't know how much of the range it is
+  // likely to used and wants different performance concerns to be balanced.
+  // Only a small portion of data is transferred to the client initially
+  // (in order to minimize costs if the client doesn't read the entire range),
+  // and as the caller iterates over more items in the range larger batches
+  // will be transferred in order to minimize latency. After enough iterations,
+  // the iterator mode will eventually reach the same byte limit as
+  // {@code WANT_ALL}.
+  ITERATOR = 0;
+  // Client intends to consume the entire range and would like it all
+  // transferred as early as possible.
+  WANT_ALL = 1;
+  // Infrequently used. The client has passed a specific row limit and wants that
+  // many rows delivered in a single batch. Because of iterator operation in
+  // client drivers make request batches transparent to the user, consider
+  // {@code WANT_ALL} StreamingMode instead. A row limit must be specified if
+  // this mode is used.
+  EXACT = 2;
+}
+
+// Enum for mutation types to support CAS.
+enum MutationType {
+  // Performs an addition of little-endian integers. If the existing value in the
+  // database is not present or shorter than {@code param}, it is first extended
+  // to the length of {@code param} with zero bytes.  If {@code param} is shorter
+  // than the existing value in the database, the existing value is truncated to
+  // match the length of {@code param}. The integers to be added must be stored
+  // in a little-endian representation.  They can be signed in two's complement
+  // representation or unsigned. You can add to an integer at a known offset in
+  // the value by prepending the appropriate number of zero bytes to {@code param}
+  // and padding with zero bytes to match the length of the value. However, this
+  // offset technique requires that you know the addition will not cause the
+  // integer field within the value to overflow.
+  ADD = 0;
+  // Performs a bitwise {@code and} operation.  If the existing value in the database
+  // is not present, then {@code param} is stored in the database. If the existing
+  // value in the database is shorter than {@code param}, it is first extended to
+  // the length of {@code param} with zero bytes.  If {@code param} is shorter than
+  // the existing value in the database, the existing value is truncated to match
+  // the length of {@code param}.
+  BIT_AND = 1;
+  // Performs a bitwise {@code or} operation.  If the existing value in the database
+  // is not present or shorter than {@code param}, it is first extended to the length
+  // of {@code param} with zero bytes.  If {@code param} is shorter than the existing
+  // value in the database, the existing value is truncated to match the length of
+  // {@code param}.
+  BIT_OR = 2;
+  // Performs a bitwise {@code xor} operation.  If the existing value in the database
+  // is not present or shorter than {@code param}, it is first extended to the length
+  // of {@code param} with zero bytes.  If {@code param} is shorter than the existing
+  // value in the database, the existing value is truncated to match the length of
+  // {@code param}.
+  BIT_XOR = 3;
+  // Appends {@code param} to the end of the existing value already in the database
+  // at the given key (or creates the key and sets the value to {@code param} if the
+  // key is empty). This will only append the value if the final concatenated value
+  // size is less than or equal to the maximum value size (i.e., if it fits). WARNING:
+  // No error is surfaced back to the user if the final value is too large because
+  // the mutation will not be applied until after the transaction has been committed.
+  // Therefore, it is only safe to use this mutation type if one can guarantee that
+  // one will keep the total value size under the maximum size.
+  APPEND_IF_FITS = 4;
+  // Performs a little-endian comparison of byte strings. If the existing value in
+  // the database is not present or shorter than {@code param}, it is first extended
+  // to the length of {@code param} with zero bytes.  If {@code param} is shorter
+  // than the existing value in the database, the existing value is truncated to
+  // match the length of {@code param}. The larger of the two values is then stored
+  // in the database.
+  MAX = 5;
+  // Performs a little-endian comparison of byte strings. If the existing value in
+  // the database is not present, then {@code param} is stored in the database. If
+  // the existing value in the database is shorter than {@code param}, it is first
+  // extended to the length of {@code param} with zero bytes.  If {@code param} is
+  // shorter than the existing value in the database, the existing value is
+  // truncated to match the length of {@code param}. The smaller of the two values
+  // is then stored in the database.
+  MIN = 6;
+  // Transforms {@code key} using a versionstamp for the transaction. Sets the
+  // transformed key in the database to {@code param}. The key is transformed by
+  // removing the final four bytes from the key and reading those as a little-Endian
+  // 32-bit integer to get a position {@code pos}. The 10 bytes of the key from
+  // {@code pos} to {@code pos + 10} are replaced with the versionstamp of the
+  // transaction used. The first byte of the key is position 0. A versionstamp is
+  // a 10 byte, unique, monotonically (but not sequentially) increasing value for
+  // each committed transaction. The first 8 bytes are the committed version of
+  // the database (serialized in big-Endian order). The last 2 bytes are monotonic
+  // in the serialization order for transactions.
+  SET_VERSIONSTAMPED_KEY = 7;
+  // Transforms {@code param} using a versionstamp for the transaction. Sets the
+  // {@code key} given to the transformed {@code param}. The parameter is transformed
+  // by removing the final four bytes from {@code param} and reading those as a
+  // little-Endian 32-bit integer to get a position {@code pos}. The 10 bytes of
+  // the parameter from {@code pos} to {@code pos + 10} are replaced with the
+  // versionstamp of the transaction used. The first byte of the parameter is position
+  // 0. A versionstamp is a 10 byte, unique, monotonically (but not sequentially)
+  // increasing value for each committed transaction. The first 8 bytes are the
+  // committed version of the database (serialized in big-Endian order). The last
+  // 2 bytes are monotonic in the serialization order for transactions.
+  SET_VERSIONSTAMPED_VALUE = 8;
+  // Performs lexicographic comparison of byte strings. If the existing value in the
+  // database is not present, then {@code param} is stored. Otherwise the smaller of
+  // the two values is then stored in the database.
+  BYTE_MIN = 9;
+  // Performs lexicographic comparison of byte strings. If the existing value in the
+  // database is not present, then {@code param} is stored. Otherwise the larger of
+  // the two values is then stored in the database.
+  BYTE_MAX = 10;
+  // Performs an atomic {@code compare and clear} operation. If the existing value in
+  // the database is equal to the given value, then given key is cleared.
+  COMPARE_AND_CLEAR = 11;
+}

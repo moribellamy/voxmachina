@@ -13,10 +13,14 @@ type Storage interface {
 	Close() error
 }
 
+var cannotFindStorage = errors.New("cannot find storage type")
+
 func FromConfig(config utils.Storage) (Storage, error) {
 	if config.Sqlite.Fpath != "" {
-		sqllite, err := NewSqlite(config.Sqlite.Fpath)
-		return sqllite, err
+		return NewSqlite(config.Sqlite.Fpath)
 	}
-	return nil, errors.New("cannot find storage type")
+	if config.Lionrock.Hostport != "" {
+		return NewLionrock(config.Lionrock.Hostport, config.Lionrock.Name, config.Lionrock.Prefix)
+	}
+	return nil, cannotFindStorage
 }

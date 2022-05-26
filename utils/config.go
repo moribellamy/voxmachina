@@ -13,9 +13,16 @@ type Server struct {
 
 // Exactly one of the Storage fields may be supplied.
 type Storage struct {
-	Sqlite sqlite `yaml:"sqlite"`
+	Sqlite   sqlite   `yaml:"sqlite"`
+	Lionrock lionrock `yaml:"lionrock"`
 }
 
 type sqlite struct {
 	Fpath string `yaml:"fpath"`
+}
+
+type lionrock struct {
+	Hostport string `yaml:"hostport"`
+	Prefix   string `yaml:"prefix"`
+	Name     string `yaml:"name"`
 }

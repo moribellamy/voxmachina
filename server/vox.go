@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
@@ -88,4 +90,28 @@ func (vox *Vox) GracefulShutdown() error {
 		vox.web.GracefulStop(),
 		vox.store.Close(),
 	)
+}
+
+func RunFromConfig(fpath string) error {
+	utils.InfoLogger.Println("Running as PID", os.Getpid())
+	var config utils.Config
+	configBytes, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		utils.ErrorLogger.Fatal(err)
+	}
+	if err := yaml.Unmarshal(configBytes, &config); err != nil {
+		utils.ErrorLogger.Fatal(err)
+	}
+
+	var store storage.Storage
+	store, err = storage.FromConfig(config.Storage)
+	if err != nil {
+		utils.ErrorLogger.Fatal(err)
+	}
+
+	vox, err := NewVox(config.Server, store)
+	if err != nil {
+		utils.ErrorLogger.Fatal(err)
+	}
+	return vox.Run()
 }
