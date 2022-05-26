@@ -86,6 +86,9 @@ func (lionrock *lionrockWrapper) Get(request *texttospeechpb.SynthesizeSpeechReq
 		return nil, nil
 	}
 	respBytes := resp.GetGetValue().Value
+	if respBytes == nil {
+		return nil, cacheMiss
+	}
 	speechResp := texttospeechpb.SynthesizeSpeechResponse{}
 	if err = proto.Unmarshal(respBytes, &speechResp); err != nil {
 		return nil, err
